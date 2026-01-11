@@ -1,0 +1,91 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+*.pyo
+*.pyd
+build/
+dist/
+wheels/
+*.egg-info
+*.egg
+.eggs/
+
+# Virtual environments
+.venv
+venv/
+ENV/
+env/
+
+# UV specific
+.uv/
+uv.lock
+
+# Downloaded files (프로젝트 특화)
+downloads/
+*.mp4
+*.mp3
+*.webm
+*.m4a
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+
+# Configuration files
+.env
+.env.local
+config.local.toml
+settings.local.json
+
+# User settings
+.ytdl_config
+user_settings.json
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# Linting
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS specific
+Thumbs.db
+desktop.ini
