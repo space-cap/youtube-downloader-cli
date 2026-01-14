@@ -29,7 +29,12 @@ class Downloader:
         self.options = options or DownloadOptions()
         ensure_directory(self.options.output_dir)
 
-    def download(self, url: str, progress_callback: Callable[[dict[str, Any]], None] | None = None) -> DownloadResult:
+    def download(
+        self,
+        url: str,
+        progress_callback: Callable[[dict[str, Any]], None] | None = None,
+        message_callback: Callable[[str], None] | None = None,
+    ) -> DownloadResult:
         """
         동영상 다운로드
 
@@ -42,7 +47,7 @@ class Downloader:
         """
         try:
             # yt-dlp 옵션 설정
-            ydl_opts = self._build_ydl_options(progress_callback)
+            ydl_opts = self._build_ydl_options(progress_callback, message_callback)
 
             # 동영상 정보 추출
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -56,7 +61,10 @@ class Downloader:
                 video_info = self._extract_video_info(info)
 
                 # 다운로드 실행
-                console.print(f"[cyan]다운로드 시작: {video_info.title}[/cyan]")
+                if message_callback:
+                    message_callback(f"[cyan]다운로드 시작: {video_info.title}[/cyan]")
+                else:
+                    console.print(f"[cyan]다운로드 시작: {video_info.title}[/cyan]")
                 ydl.download([url])
 
                 # 파일 경로 찾기
@@ -79,7 +87,11 @@ class Downloader:
                 error_message=str(e)
             )
 
-    def _build_ydl_options(self, progress_callback: Callable[[dict[str, Any]], None] | None) -> dict[str, Any]:
+    def _build_ydl_options(
+        self,
+        progress_callback: Callable[[dict[str, Any]], None] | None,
+        message_callback: Callable[[str], None] | None = None,
+    ) -> dict[str, Any]:
         """yt-dlp 옵션 빌드"""
         opts: dict[str, Any] = {
             "outtmpl": str(self.options.output_dir / "%(title)s.%(ext)s"),
@@ -92,7 +104,7 @@ class Downloader:
             try:
                 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
                 opts["ffmpeg_location"] = ffmpeg_exe
-                console.print(f"[dim]FFmpeg 자동 감지: {ffmpeg_exe}[/dim]")
+                # 상세 로그가 필요하다면 debug 레벨로 로깅하거나 verbose 옵션에서만 출력
             except Exception as e:
                 console.print(f"[yellow]경고: FFmpeg를 찾을 수 없습니다. ({str(e)})[/yellow]")
 

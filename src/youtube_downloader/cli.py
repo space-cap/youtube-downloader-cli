@@ -116,8 +116,12 @@ def download(
                 else:
                     progress.update(task_id, completed=100, total=100)
 
+        def message_callback(msg: str) -> None:
+            """메시지 출력 콜백"""
+            progress.console.print(msg)
+
         # 다운로드 실행
-        result = downloader.download(url, progress_callback)
+        result = downloader.download(url, progress_callback, message_callback)
 
         if result.success:
             console.print("\n[green]✓ 다운로드 완료![/green]")
