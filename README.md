@@ -46,6 +46,7 @@ $ ytdl download https://www.youtube.com/watch?v=dQw4w9WgXcQ
 ### 요구사항
 
 - **Python 3.13** 이상
+- **FFmpeg** (기본 내장, 시스템 설치 시 우선 사용)
 - **UV** (권장) 또는 pip
 
 ### 빠른 시작

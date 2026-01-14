@@ -4,7 +4,9 @@ import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+import shutil
 
+import imageio_ffmpeg
 import yt_dlp
 from rich.console import Console
 
@@ -84,6 +86,15 @@ class Downloader:
             "quiet": True,
             "no_warnings": True,
         }
+
+        # FFmpeg 바이너리 설정
+        if shutil.which("ffmpeg") is None:
+            try:
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+                opts["ffmpeg_location"] = ffmpeg_exe
+                console.print(f"[dim]FFmpeg 자동 감지: {ffmpeg_exe}[/dim]")
+            except Exception as e:
+                console.print(f"[yellow]경고: FFmpeg를 찾을 수 없습니다. ({str(e)})[/yellow]")
 
         # 포맷 설정
         if self.options.audio_only:

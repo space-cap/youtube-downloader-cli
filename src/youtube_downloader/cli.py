@@ -97,18 +97,24 @@ def download(
         TimeRemainingColumn(),
         console=console,
     ) as progress:
-        task_id = progress.add_task("다운로드 중...", total=100)
+        task_id = progress.add_task("다운로드 중...", total=None)
 
         def progress_callback(d: dict) -> None:
             """진행률 콜백"""
             if d["status"] == "downloading":
-                if "total_bytes" in d:
-                    downloaded = d.get("downloaded_bytes", 0)
-                    total = d["total_bytes"]
-                    percent = (downloaded / total) * 100
-                    progress.update(task_id, completed=percent)
+                downloaded = d.get("downloaded_bytes", 0)
+                total = d.get("total_bytes") or d.get("total_bytes_estimate")
+                
+                if total:
+                    progress.update(task_id, completed=downloaded, total=total)
+                else:
+                    progress.update(task_id, completed=downloaded)
+                    
             elif d["status"] == "finished":
-                progress.update(task_id, completed=100)
+                if "total_bytes" in d:
+                    progress.update(task_id, completed=d["total_bytes"], total=d["total_bytes"])
+                else:
+                    progress.update(task_id, completed=100, total=100)
 
         # 다운로드 실행
         result = downloader.download(url, progress_callback)
