@@ -114,7 +114,7 @@ class Downloader:
             opts["postprocessors"] = [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
-                "preferredquality": "192",
+                "preferredquality": self.options.audio_quality,
             }]
         else:
             if self.options.quality == "best":

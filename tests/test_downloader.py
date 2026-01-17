@@ -20,12 +20,27 @@ def test_downloader_with_custom_options(test_output_dir):
         quality="720p",
         output_dir=test_output_dir,
         audio_only=True,
+        audio_quality="320",
     )
     downloader = Downloader(options)
 
     assert downloader.options.quality == "720p"
     assert downloader.options.output_dir == test_output_dir
     assert downloader.options.audio_only is True
+    assert downloader.options.audio_quality == "320"
+
+
+def test_audio_quality_default():
+    """오디오 품질 기본값 테스트"""
+    options = DownloadOptions(audio_only=True)
+    assert options.audio_quality == "192"
+
+
+def test_audio_quality_custom():
+    """커스텀 오디오 품질 설정 테스트"""
+    options = DownloadOptions(audio_only=True, audio_quality="128")
+    downloader = Downloader(options)
+    assert downloader.options.audio_quality == "128"
 
 
 def test_download_invalid_url():

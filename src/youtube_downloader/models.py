@@ -24,6 +24,7 @@ class DownloadOptions(BaseModel):
     quality: str = Field(default="best", description="화질 설정")
     output_dir: Path = Field(default=Path("./downloads"), description="출력 디렉토리")
     audio_only: bool = Field(default=False, description="오디오만 다운로드")
+    audio_quality: str = Field(default="192", description="오디오 비트레이트 (kbps)")
     save_metadata: bool = Field(default=False, description="메타데이터 저장")
     save_thumbnail: bool = Field(default=False, description="썸네일 저장")
 

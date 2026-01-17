@@ -52,6 +52,13 @@ def cli() -> None:
     help="오디오만 다운로드 (MP3)",
 )
 @click.option(
+    "--audio-quality",
+    "-aq",
+    type=click.Choice(["96", "128", "192", "256", "320"]),
+    default="192",
+    help="오디오 비트레이트 (kbps)",
+)
+@click.option(
     "--metadata",
     is_flag=True,
     help="메타데이터 저장",
@@ -66,6 +73,7 @@ def download(
     quality: str,
     output: Path | None,
     audio_only: bool,
+    audio_quality: str,
     metadata: bool,
     thumbnail: bool,
 ) -> None:
@@ -75,12 +83,14 @@ def download(
         ytdl download https://www.youtube.com/watch?v=...
         ytdl download <URL> --quality 1080p
         ytdl download <URL> --audio-only
+        ytdl download <URL> --audio-only --audio-quality 320
     """
     # 옵션 설정
     options = DownloadOptions(
         quality=quality,
         output_dir=output or settings.download.output_dir,
         audio_only=audio_only,
+        audio_quality=audio_quality,
         save_metadata=metadata,
         save_thumbnail=thumbnail,
     )
