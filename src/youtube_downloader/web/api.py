@@ -276,9 +276,33 @@ def download_task(task_id: str, url: str, options):
         url: 유튜브 URL
         options: 다운로드 옵션
     """
+    import asyncio
+    from .websocket import (
+        send_progress_update,
+        send_status_update,
+        send_complete_message,
+        send_error_message,
+    )
+    
+    # 비동기 함수를 동기 컨텍스트에서 실행하기 위한 헬퍼
+    def run_async(coro):
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        if loop.is_running():
+            # 이미 실행 중인 루프가 있으면 태스크 생성
+            asyncio.create_task(coro)
+        else:
+            # 루프가 없으면 실행
+            loop.run_until_complete(coro)
+    
     try:
         # 상태 업데이트: downloading
         task_manager.update_task_status(task_id, "downloading")
+        run_async(send_status_update(task_id, "downloading", "다운로드를 시작합니다..."))
         
         # CLI Downloader 옵션 변환
         cli_options = CLIDownloadOptions(
@@ -301,6 +325,8 @@ def download_task(task_id: str, url: str, options):
                 
                 if total > 0:
                     percentage = int((downloaded / total) * 100)
+                    
+                    # TaskManager 업데이트
                     task_manager.update_task_progress(
                         task_id=task_id,
                         percentage=percentage,
@@ -309,11 +335,25 @@ def download_task(task_id: str, url: str, options):
                         speed=d.get("_speed_str", ""),
                         eta=d.get("_eta_str", ""),
                     )
+                    
+                    # WebSocket으로 진행률 전송
+                    run_async(send_progress_update(
+                        task_id=task_id,
+                        percentage=percentage,
+                        downloaded_bytes=downloaded,
+                        total_bytes=total,
+                        speed=d.get("_speed_str", ""),
+                        eta=d.get("_eta_str", ""),
+                    ))
         
         # 다운로드 실행
         result = downloader.download(url, progress_callback)
         
         if result.success:
+            # 처리 중 상태
+            task_manager.update_task_status(task_id, "processing")
+            run_async(send_status_update(task_id, "processing", "파일 처리 중..."))
+            
             # 동영상 정보 저장
             if result.video_info:
                 task_manager.set_task_video_info(
@@ -327,23 +367,51 @@ def download_task(task_id: str, url: str, options):
             
             # 작업 완료
             task_manager.complete_task(task_id)
+            
+            # WebSocket으로 완료 메시지 전송
+            if result.file_path:
+                from pathlib import Path
+                file_path = Path(result.file_path)
+                run_async(send_complete_message(
+                    task_id=task_id,
+                    filename=file_path.name,
+                    size=file_path.stat().st_size if file_path.exists() else 0,
+                    download_url=f"/api/v1/download/{task_id}/file"
+                ))
         else:
             # 작업 실패
+            error_msg = result.error_message or "다운로드 실패"
             task_manager.fail_task(
                 task_id,
                 {
                     "code": "DOWNLOAD_FAILED",
-                    "message": result.error_message or "다운로드 실패",
+                    "message": error_msg,
                 }
             )
+            
+            # WebSocket으로 에러 메시지 전송
+            run_async(send_error_message(
+                task_id=task_id,
+                error_code="DOWNLOAD_FAILED",
+                error_message=error_msg
+            ))
     
     except Exception as e:
         # 예외 발생 시 실패 처리
+        error_msg = str(e)
         task_manager.fail_task(
             task_id,
             {
                 "code": "DOWNLOAD_FAILED",
-                "message": str(e),
+                "message": error_msg,
             }
         )
+        
+        # WebSocket으로 에러 메시지 전송
+        run_async(send_error_message(
+            task_id=task_id,
+            error_code="DOWNLOAD_FAILED",
+            error_message=error_msg
+        ))
+
 
