@@ -1,7 +1,9 @@
 """API 라우터"""
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi.responses import FileResponse
 from typing import Optional
+from pathlib import Path
 import yt_dlp
 
 from .models import (
@@ -11,7 +13,16 @@ from .models import (
     FormatInfo,
     ErrorResponse,
     ErrorDetail,
+    DownloadRequest,
+    DownloadResponse,
+    DownloadStatusResponse,
+    DownloadStatusData,
+    DownloadProgress,
+    DownloadFileInfo,
 )
+from .tasks import task_manager
+from ..downloader import Downloader
+from ..models import DownloadOptions as CLIDownloadOptions
 
 # API 라우터 생성
 router = APIRouter(prefix="/api/v1", tags=["api"])
@@ -117,3 +128,222 @@ async def get_video_info(url: str = Query(..., description="유튜브 동영상 
                 "message": f"서버 오류가 발생했습니다: {str(e)}",
             }
         )
+
+
+@router.post(
+    "/download",
+    response_model=DownloadResponse,
+    status_code=202,
+    responses={
+        400: {"model": ErrorResponse, "description": "잘못된 요청"},
+        429: {"model": ErrorResponse, "description": "요청 제한 초과"},
+    },
+)
+async def start_download(request: DownloadRequest, background_tasks: BackgroundTasks):
+    """
+    다운로드 시작
+    
+    백그라운드에서 다운로드를 시작하고 task_id를 반환합니다.
+    """
+    try:
+        # Task 생성
+        task_id = task_manager.create_task(
+            url=str(request.url),
+            options=request.options.model_dump()
+        )
+        
+        # 백그라운드 작업 추가
+        background_tasks.add_task(
+            download_task,
+            task_id=task_id,
+            url=str(request.url),
+            options=request.options
+        )
+        
+        task = task_manager.get_task(task_id)
+        
+        return DownloadResponse(
+            success=True,
+            data={
+                "task_id": task_id,
+                "status": "pending",
+                "created_at": task["created_at"].isoformat(),
+            }
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "INTERNAL_ERROR",
+                "message": f"다운로드 시작 실패: {str(e)}",
+            }
+        )
+
+
+@router.get(
+    "/download/{task_id}/status",
+    response_model=DownloadStatusResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "작업을 찾을 수 없음"},
+    },
+)
+async def get_download_status(task_id: str):
+    """다운로드 상태 조회"""
+    task = task_manager.get_task(task_id)
+    
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "TASK_NOT_FOUND",
+                "message": "작업을 찾을 수 없습니다.",
+            }
+        )
+    
+    # 응답 데이터 구성
+    status_data = DownloadStatusData(
+        task_id=task["task_id"],
+        status=task["status"],
+        progress=DownloadProgress(**task["progress"]) if task["progress"] else None,
+        video_info=VideoInfo(**task["video_info"]) if task["video_info"] else None,
+        file=DownloadFileInfo(
+            filename=Path(task["file_path"]).name,
+            size=Path(task["file_path"]).stat().st_size,
+            download_url=f"/api/v1/download/{task_id}/file"
+        ) if task["file_path"] and task["status"] == "completed" else None,
+        created_at=task["created_at"],
+        completed_at=task.get("completed_at"),
+        failed_at=task.get("failed_at"),
+        error=task.get("error"),
+    )
+    
+    return DownloadStatusResponse(success=True, data=status_data)
+
+
+@router.get(
+    "/download/{task_id}/file",
+    responses={
+        404: {"model": ErrorResponse, "description": "파일을 찾을 수 없음"},
+    },
+)
+async def download_file(task_id: str):
+    """파일 다운로드"""
+    task = task_manager.get_task(task_id)
+    
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "TASK_NOT_FOUND",
+                "message": "작업을 찾을 수 없습니다.",
+            }
+        )
+    
+    if task["status"] != "completed" or not task["file_path"]:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "FILE_NOT_FOUND",
+                "message": "파일을 찾을 수 없습니다. 다운로드가 완료되지 않았거나 파일이 만료되었습니다.",
+            }
+        )
+    
+    file_path = Path(task["file_path"])
+    
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "FILE_NOT_FOUND",
+                "message": "파일이 존재하지 않습니다.",
+            }
+        )
+    
+    return FileResponse(
+        path=str(file_path),
+        filename=file_path.name,
+        media_type="application/octet-stream",
+    )
+
+
+def download_task(task_id: str, url: str, options):
+    """
+    백그라운드 다운로드 작업
+    
+    Args:
+        task_id: 작업 ID
+        url: 유튜브 URL
+        options: 다운로드 옵션
+    """
+    try:
+        # 상태 업데이트: downloading
+        task_manager.update_task_status(task_id, "downloading")
+        
+        # CLI Downloader 옵션 변환
+        cli_options = CLIDownloadOptions(
+            quality=options.quality,
+            output_dir=task_manager.output_dir,
+            audio_only=options.audio_only,
+            audio_quality=options.audio_quality,
+            save_metadata=options.save_metadata,
+            save_thumbnail=options.save_thumbnail,
+        )
+        
+        # Downloader 생성
+        downloader = Downloader(cli_options)
+        
+        # 진행률 콜백
+        def progress_callback(d: dict):
+            if d["status"] == "downloading":
+                downloaded = d.get("downloaded_bytes", 0)
+                total = d.get("total_bytes") or d.get("total_bytes_estimate", 0)
+                
+                if total > 0:
+                    percentage = int((downloaded / total) * 100)
+                    task_manager.update_task_progress(
+                        task_id=task_id,
+                        percentage=percentage,
+                        downloaded_bytes=downloaded,
+                        total_bytes=total,
+                        speed=d.get("_speed_str", ""),
+                        eta=d.get("_eta_str", ""),
+                    )
+        
+        # 다운로드 실행
+        result = downloader.download(url, progress_callback)
+        
+        if result.success:
+            # 동영상 정보 저장
+            if result.video_info:
+                task_manager.set_task_video_info(
+                    task_id,
+                    result.video_info.model_dump()
+                )
+            
+            # 파일 경로 저장
+            if result.file_path:
+                task_manager.set_task_file_path(task_id, result.file_path)
+            
+            # 작업 완료
+            task_manager.complete_task(task_id)
+        else:
+            # 작업 실패
+            task_manager.fail_task(
+                task_id,
+                {
+                    "code": "DOWNLOAD_FAILED",
+                    "message": result.error_message or "다운로드 실패",
+                }
+            )
+    
+    except Exception as e:
+        # 예외 발생 시 실패 처리
+        task_manager.fail_task(
+            task_id,
+            {
+                "code": "DOWNLOAD_FAILED",
+                "message": str(e),
+            }
+        )
+
