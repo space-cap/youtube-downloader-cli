@@ -54,7 +54,7 @@ def cli() -> None:
 @click.option(
     "--audio-quality",
     "-aq",
-    type=click.Choice(["96", "128", "192", "256", "320"]),
+    type=click.Choice(["32", "48", "64", "96", "128", "192", "256", "320"]),
     default="192",
     help="오디오 비트레이트 (kbps)",
 )
