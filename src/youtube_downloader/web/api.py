@@ -156,23 +156,60 @@ async def start_download(
     인증된 사용자만 사용할 수 있습니다.
     """
     try:
+        # 크레딧 비용 계산
+        from .credit_api import calculate_credits, deduct_credits
+        
+        quality = request.options.quality or "best"
+        audio_quality = request.options.audio_quality if hasattr(request.options, 'audio_quality') else None
+        credits_required = calculate_credits(quality, audio_quality)
+        
+        # 크레딧 확인
+        if current_user.credits < credits_required:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "code": "INSUFFICIENT_CREDITS",
+                    "message": f"크레딧이 부족합니다. 필요: {credits_required}, 보유: {current_user.credits}",
+                    "required": credits_required,
+                    "available": current_user.credits
+                }
+            )
+        
         # Task 생성
         task_id = task_manager.create_task(
             url=str(request.url),
             options=request.options.model_dump()
         )
         
+        # 크레딧 차감
+        success = deduct_credits(
+            user=current_user,
+            credits=credits_required,
+            description=f"다운로드: {quality} ({str(request.url)[:50]}...)",
+            db=db
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "code": "CREDIT_DEDUCTION_FAILED",
+                    "message": "크레딧 차감에 실패했습니다."
+                }
+            )
+        
         # 데이터베이스에 다운로드 내역 저장
         download_record = DownloadDB(
             user_id=current_user.id,
             task_id=task_id,
             video_url=str(request.url),
-            quality=request.options.quality or "best",
-            credits_used=0,  # TODO: Phase 2에서 크레딧 차감 로직 추가
+            quality=quality,
+            credits_used=credits_required,
             status="pending"
         )
         db.add(download_record)
         db.commit()
+        db.refresh(current_user)  # Refresh to get updated credits
         
         # 백그라운드 작업 추가
         background_tasks.add_task(
@@ -190,6 +227,8 @@ async def start_download(
                 "task_id": task_id,
                 "status": "pending",
                 "created_at": task["created_at"].isoformat(),
+                "credits_used": credits_required,
+                "credits_remaining": current_user.credits
             }
         )
     

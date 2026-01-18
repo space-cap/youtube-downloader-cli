@@ -29,8 +29,10 @@ app.add_middleware(
 # API 라우터 등록
 from .api import router as api_router
 from .auth_api import router as auth_router
+from .credit_api import router as credit_router
 
 app.include_router(auth_router)
+app.include_router(credit_router)
 app.include_router(api_router)
 
 # 정적 파일 서빙 설정
