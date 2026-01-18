@@ -1,9 +1,10 @@
 """API 라우터"""
 
-from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, Depends
 from fastapi.responses import FileResponse
 from typing import Optional
 from pathlib import Path
+from sqlalchemy.orm import Session
 import yt_dlp
 
 from .models import (
@@ -23,6 +24,9 @@ from .models import (
 from .tasks import task_manager
 from ..downloader import Downloader
 from ..models import DownloadOptions as CLIDownloadOptions
+from .database import get_db
+from .models_db import User, Download as DownloadDB
+from .auth_api import get_current_user
 
 # API 라우터 생성
 router = APIRouter(prefix="/api/v1", tags=["api"])
@@ -133,17 +137,23 @@ async def get_video_info(url: str = Query(..., description="유튜브 동영상 
 @router.post(
     "/download",
     response_model=DownloadResponse,
-    status_code=202,
     responses={
         400: {"model": ErrorResponse, "description": "잘못된 요청"},
-        429: {"model": ErrorResponse, "description": "요청 제한 초과"},
+        401: {"model": ErrorResponse, "description": "인증 필요"},
+        500: {"model": ErrorResponse, "description": "서버 오류"},
     },
 )
-async def start_download(request: DownloadRequest, background_tasks: BackgroundTasks):
+async def start_download(
+    request: DownloadRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    다운로드 시작
+    다운로드 시작 (인증 필요)
     
-    백그라운드에서 다운로드를 시작하고 task_id를 반환합니다.
+    유튜브 동영상 다운로드를 시작합니다.
+    인증된 사용자만 사용할 수 있습니다.
     """
     try:
         # Task 생성
@@ -151,6 +161,18 @@ async def start_download(request: DownloadRequest, background_tasks: BackgroundT
             url=str(request.url),
             options=request.options.model_dump()
         )
+        
+        # 데이터베이스에 다운로드 내역 저장
+        download_record = DownloadDB(
+            user_id=current_user.id,
+            task_id=task_id,
+            video_url=str(request.url),
+            quality=request.options.quality or "best",
+            credits_used=0,  # TODO: Phase 2에서 크레딧 차감 로직 추가
+            status="pending"
+        )
+        db.add(download_record)
+        db.commit()
         
         # 백그라운드 작업 추가
         background_tasks.add_task(
