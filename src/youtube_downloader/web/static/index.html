@@ -1,24 +1,193 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Downloader</title>
+    <meta name="description" content="YouTube 동영상을 간편하게 다운로드하세요. 원하는 화질과 오디오 품질을 선택할 수 있습니다.">
+    <title>YouTube Downloader - 간편한 동영상 다운로드</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <h1>🎥 YouTube Downloader</h1>
-            <p>개발 중...</p>
-        </header>
-        
-        <main>
-            <p>API 문서: <a href="/docs">/docs</a></p>
-            <p>Health Check: <a href="/health">/health</a></p>
-        </main>
-    </div>
-    
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🎥</span>
+                    <span class="logo-text">YouTube Downloader</span>
+                </div>
+                <button class="theme-toggle" id="theme-toggle" aria-label="다크 모드 전환">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h1 class="hero-title">YouTube 동영상을 간편하게 다운로드하세요</h1>
+                <p class="hero-subtitle">URL을 입력하고 원하는 품질을 선택하세요</p>
+            </section>
+
+            <!-- Download Form -->
+            <section class="download-section">
+                <form class="download-form" id="download-form">
+                    <!-- URL Input -->
+                    <div class="input-group">
+                        <label for="url-input" class="input-label">
+                            <span class="label-icon">🔗</span>
+                            YouTube URL
+                        </label>
+                        <input type="url" id="url-input" class="input-field"
+                            placeholder="https://www.youtube.com/watch?v=..." required />
+                        <span class="input-error" id="url-error"></span>
+                    </div>
+
+                    <!-- Options Grid -->
+                    <div class="options-grid">
+                        <!-- Quality Select -->
+                        <div class="select-group">
+                            <label for="quality-select" class="select-label">화질 선택</label>
+                            <select id="quality-select" class="select-field">
+                                <option value="best">최고 화질</option>
+                                <option value="1080p">1080p</option>
+                                <option value="720p" selected>720p</option>
+                                <option value="480p">480p</option>
+                                <option value="360p">360p</option>
+                            </select>
+                        </div>
+
+                        <!-- Audio Quality Select -->
+                        <div class="select-group">
+                            <label for="audio-quality-select" class="select-label">오디오 품질</label>
+                            <select id="audio-quality-select" class="select-field">
+                                <option value="320">320kbps</option>
+                                <option value="192" selected>192kbps</option>
+                                <option value="128">128kbps</option>
+                                <option value="96">96kbps</option>
+                                <option value="64">64kbps</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Checkboxes -->
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="checkbox-input" id="audio-only" />
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">오디오만 다운로드</span>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="checkbox-input" id="save-metadata" />
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">메타데이터 저장</span>
+                        </label>
+
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="checkbox-input" id="save-thumbnail" />
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">썸네일 저장</span>
+                        </label>
+                    </div>
+
+                    <!-- Download Button -->
+                    <button type="submit" class="btn btn-primary" id="download-btn">
+                        <span class="btn-icon">⬇️</span>
+                        <span class="btn-text">다운로드 시작</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Video Preview (Hidden by default) -->
+            <section class="video-preview-section hidden" id="video-preview-section">
+                <div class="video-preview">
+                    <img src="" alt="Video thumbnail" class="preview-thumbnail" id="preview-thumbnail" />
+                    <div class="preview-info">
+                        <h3 class="preview-title" id="preview-title"></h3>
+                        <p class="preview-meta">
+                            <span class="preview-channel" id="preview-channel"></span>
+                            <span class="preview-separator">•</span>
+                            <span class="preview-duration" id="preview-duration"></span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Section (Hidden by default) -->
+            <section class="progress-section hidden" id="progress-section">
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span class="progress-title" id="progress-title">다운로드 중...</span>
+                        <span class="progress-percentage" id="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-details">
+                        <span class="progress-size" id="progress-size">0 MB / 0 MB</span>
+                        <span class="progress-speed" id="progress-speed">0 MB/s</span>
+                        <span class="progress-eta" id="progress-eta">남은 시간: --:--</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="cancel-btn">취소</button>
+                </div>
+            </section>
+
+            <!-- Success Message (Hidden by default) -->
+            <section class="alert-section hidden" id="success-section">
+                <div class="alert alert-success">
+                    <span class="alert-icon">✓</span>
+                    <div class="alert-content">
+                        <h4 class="alert-title">다운로드 완료!</h4>
+                        <p class="alert-message" id="success-message"></p>
+                    </div>
+                    <div class="alert-actions">
+                        <button class="btn btn-primary" id="download-file-btn">파일 다운로드</button>
+                        <button class="btn btn-secondary" id="new-download-btn">새로 다운로드</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Message (Hidden by default) -->
+            <section class="alert-section hidden" id="error-section">
+                <div class="alert alert-error">
+                    <span class="alert-icon">⚠️</span>
+                    <div class="alert-content">
+                        <h4 class="alert-title">다운로드 실패</h4>
+                        <p class="alert-message" id="error-message"></p>
+                    </div>
+                    <button class="alert-close" id="error-close" aria-label="닫기">×</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">
+                Made with ❤️ |
+                <a href="https://github.com/space-cap/youtube-downloader-cli" target="_blank"
+                    rel="noopener noreferrer">GitHub</a> |
+                <a href="/docs" target="_blank">Docs</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
     <script src="/static/app.js"></script>
 </body>
+
 </html>
