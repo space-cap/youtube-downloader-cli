@@ -17,6 +17,7 @@ from . import __version__
 from .config import settings
 from .downloader import Downloader
 from .models import DownloadOptions
+from .utils import trim_audio
 
 console = Console()
 
@@ -192,6 +193,45 @@ def list_formats(url: str) -> None:
     except Exception as e:
         console.print(f"[red]에러 발생: {str(e)}[/red]")
         raise click.Abort() from None
+
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True, path_type=Path))
+@click.option("--start", default="00:00:00", help="시작 시간 (HH:MM:SS)")
+@click.option("--end", default=None, help="종료 시간 (HH:MM:SS)")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="출력 파일 경로",
+)
+def trim(
+    input_file: Path,
+    start: str,
+    end: str | None,
+    output: Path | None,
+) -> None:
+    """오디오 파일 자르기
+
+    예시:
+        ytdl trim input.mp3 --start 00:05:00
+        ytdl trim input.mp3 --start 00:00:00 --end 00:20:00
+    """
+    if output is None:
+        # 출력 파일명이 지정되지 않으면 _trimmed 접미사 추가
+        output = input_file.with_stem(f"{input_file.stem}_trimmed")
+
+    console.print(f"[cyan]오디오 자르기 시작: {input_file.name}[/cyan]")
+    console.print(f"구간: {start} ~ {end or '끝'}")
+
+    try:
+        trim_audio(input_file, output, start, end)
+        console.print("\n[green]✓ 완료![/green]")
+        console.print(f"[cyan]저장 위치: {output}[/cyan]")
+    except Exception as e:
+        console.print(f"\n[red]✗ 실패: {str(e)}[/red]")
+        raise click.Abort()
 
 
 @cli.group()

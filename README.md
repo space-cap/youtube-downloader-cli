@@ -102,6 +102,8 @@ pip install -e .
 > 가상환경을 활성화하지 않았다면 모든 `ytdl` 명령어 앞에 `uv run`을 붙여주세요:
 > ```bash
 > uv run ytdl download <URL>
+> 
+> uv run ytdl download https://www.youtube.com/watch?v=XFWdfoRl_ig --quality 720p
 > ```
 
 ### 기본 명령어
