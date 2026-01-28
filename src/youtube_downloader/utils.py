@@ -63,3 +63,63 @@ def ensure_directory(path: Path) -> None:
         path: 디렉토리 경로
     """
     path.mkdir(parents=True, exist_ok=True)
+
+
+def get_ffmpeg_path() -> str:
+    """ffmpeg 실행 파일 경로 반환"""
+    import shutil
+    import imageio_ffmpeg  # type: ignore
+
+    if shutil.which("ffmpeg"):
+        return "ffmpeg"
+    try:
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        raise RuntimeError("ffmpeg를 찾을 수 없습니다.")
+
+
+def trim_audio(
+    input_path: Path,
+    output_path: Path,
+    start: str | None = None,
+    end: str | None = None,
+) -> None:
+    """
+    오디오 파일 자르기
+
+    Args:
+        input_path: 입력 파일 경로
+        output_path: 출력 파일 경로
+        start: 시작 시간 (HH:MM:SS 또는 초)
+        end: 종료 시간 (HH:MM:SS 또는 초)
+    """
+    import subprocess
+
+    ffmpeg_path = get_ffmpeg_path()
+    
+    # -ss 옵션은 입력 파일(-i) 앞에 두는 것이 더 빠름 (input seeking)
+    # 하지만 정확도를 위해 재인코딩이 필요할 수 있음. 
+    # mp3의 경우 copy가 빠르고 보통 무난함.
+    # 여기서는 input seeking을 사용하되 -c copy로 빠르게 처리
+    
+    cmd = [ffmpeg_path]
+    
+    if start:
+        cmd.extend(["-ss", start])
+        
+    if end:
+        cmd.extend(["-to", end])
+
+    cmd.extend(["-i", str(input_path)])
+    
+    # 오디오 코덱 복사
+    cmd.extend(["-c", "copy", str(output_path)])
+    
+    # 기존 파일 덮어쓰기 허용
+    cmd.append("-y")
+
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr.decode() if e.stderr else str(e)
+        raise RuntimeError(f"ffmpeg 실행 실패: {error_msg}")

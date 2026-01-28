@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>크레딧 가격 안내 - YouTube Downloader</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .pricing-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .pricing-header p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-color);
+        }
+
+        .pricing-card.popular {
+            border-color: var(--primary-color);
+            position: relative;
+        }
+
+        .pricing-card.popular::before {
+            content: "인기";
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .credits {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 1rem 0;
+        }
+
+        .pricing-card .price {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .per-credit {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .pricing-card .discount {
+            display: inline-block;
+            background: var(--success-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .cost-table {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .cost-table h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .cost-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .cost-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .cost-item .quality {
+            font-weight: 600;
+        }
+
+        .cost-item .credits {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .bonus-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .bonus-section h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .bonus-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .bonus-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .bonus-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .bonus-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .bonus-card .amount {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin: 3rem 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 3rem;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            background: var(--primary-hover);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="pricing-container">
+        <!-- Header -->
+        <div class="pricing-header">
+            <h1>💳 크레딧 가격 안내</h1>
+            <p>합리적인 가격으로 YouTube 동영상을 다운로드하세요</p>
+        </div>
+
+        <!-- Pricing Cards -->
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>스타터</h3>
+                <div class="credits">10</div>
+                <div class="price">₩1,100</div>
+                <div class="per-credit">크레딧당 ₩110</div>
+            </div>
+
+            <div class="pricing-card">
+                <h3>베이직</h3>
+                <div class="discount">20% 할인</div>
+                <div class="credits">50</div>
+                <div class="price">₩4,400</div>
+                <div class="per-credit">크레딧당 ₩88</div>
+            </div>
+
+            <div class="pricing-card popular">
+                <h3>스탠다드</h3>
+                <div class="discount">30% 할인</div>
+                <div class="credits">100</div>
+                <div class="price">₩7,700</div>
+                <div class="per-credit">크레딧당 ₩77</div>
+            </div>
+
+            <div class="pricing-card">
+                <h3>프리미엄</h3>
+                <div class="discount">40% 할인</div>
+                <div class="credits">300</div>
+                <div class="price">₩19,800</div>
+                <div class="per-credit">크레딧당 ₩66</div>
+            </div>
+
+            <div class="pricing-card">
+                <h3>프로</h3>
+                <div class="discount">50% 할인</div>
+                <div class="credits">1000</div>
+                <div class="price">₩55,000</div>
+                <div class="per-credit">크레딧당 ₩55</div>
+            </div>
+        </div>
+
+        <!-- Cost Table -->
+        <div class="cost-table">
+            <h2>📊 크레딧 소비 안내</h2>
+            <div class="cost-grid">
+                <div class="cost-section">
+                    <h3>🎬 동영상 화질별</h3>
+                    <div class="cost-item">
+                        <span class="quality">360p</span>
+                        <span class="credits">1 크레딧</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="quality">480p</span>
+                        <span class="credits">2 크레딧</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="quality">720p (HD)</span>
+                        <span class="credits">3 크레딧</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="quality">1080p (Full HD)</span>
+                        <span class="credits">5 크레딧</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="quality">1440p (2K)</span>
+                        <span class="credits">8 크레딧</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="quality">2160p (4K)</span>
+                        <span class="credits">12 크레딧</span>
+                    </div>
+                </div>
+
+                <div class="cost-section">
+                    <h3>🎵 오디오 품질별</h3>
+                    <div class="cost-item">
+                        <span class="quality">64-128kbps (저음질)</span>
+                        <span class="credits">1 크레딧</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="quality">192-320kbps (고음질)</span>
+                        <span class="credits">2 크레딧</span>
+                    </div>
+                    <p style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
+                        * 오디오만 다운로드 시 해당 크레딧 적용<br>
+                        * 동영상 + 오디오 다운로드 시 합산
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bonus Section -->
+        <div class="bonus-section">
+            <h2>🎁 무료 크레딧 받기</h2>
+            <div class="bonus-grid">
+                <div class="bonus-card">
+                    <div class="icon">🎉</div>
+                    <h3>신규 가입</h3>
+                    <div class="amount">+5 크레딧</div>
+                    <p>회원가입 시 즉시 지급</p>
+                </div>
+
+                <div class="bonus-card">
+                    <div class="icon">👥</div>
+                    <h3>친구 추천</h3>
+                    <div class="amount">+3 크레딧</div>
+                    <p>추천인/피추천인 각각 지급</p>
+                </div>
+
+                <div class="bonus-card">
+                    <div class="icon">📅</div>
+                    <h3>일일 로그인</h3>
+                    <div class="amount">+1 크레딧</div>
+                    <p>최대 주 3회</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-section">
+            <a href="/" class="cta-button">지금 시작하기</a>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

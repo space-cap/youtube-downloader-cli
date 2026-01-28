@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 테스트 - YouTube Downloader</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #FF0000;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #FF0000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #CC0000;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .messages {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .message.progress {
+            background: #cfe2ff;
+            border-left: 4px solid #0d6efd;
+        }
+
+        .message.status {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .message.complete {
+            background: #d1e7dd;
+            border-left: 4px solid #198754;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #FF0000;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎥 WebSocket 테스트</h1>
+
+        <div id="status" class="status disconnected">
+            연결 끊김
+        </div>
+
+        <div class="input-group">
+            <label for="taskId">Task ID:</label>
+            <input type="text" id="taskId" placeholder="다운로드 시작 후 받은 task_id 입력">
+        </div>
+
+        <div>
+            <button id="connectBtn" onclick="connect()">연결</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>연결 해제</button>
+            <button onclick="clearMessages()">메시지 지우기</button>
+        </div>
+
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%">0%</div>
+        </div>
+
+        <div id="progressInfo" style="margin: 10px 0; color: #666;">
+            대기 중...
+        </div>
+
+        <div class="messages" id="messages">
+            <p style="color: #999;">WebSocket 메시지가 여기에 표시됩니다...</p>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        const statusEl = document.getElementById('status');
+        const messagesEl = document.getElementById('messages');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const taskIdInput = document.getElementById('taskId');
+        const progressFill = document.getElementById('progressFill');
+        const progressInfo = document.getElementById('progressInfo');
+
+        function connect() {
+            const taskId = taskIdInput.value.trim();
+
+            if (!taskId) {
+                alert('Task ID를 입력해주세요!');
+                return;
+            }
+
+            const wsUrl = `ws://localhost:8000/ws/download/${taskId}`;
+
+            addMessage('system', `연결 시도: ${wsUrl}`);
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                statusEl.textContent = '연결됨';
+                statusEl.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                addMessage('system', '✅ WebSocket 연결 성공!');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleMessage(data);
+                } catch (e) {
+                    addMessage('error', `파싱 오류: ${event.data}`);
+                }
+            };
+
+            ws.onerror = (error) => {
+                addMessage('error', `❌ WebSocket 오류: ${error}`);
+            };
+
+            ws.onclose = () => {
+                statusEl.textContent = '연결 끊김';
+                statusEl.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                addMessage('system', '🔌 WebSocket 연결 종료');
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function handleMessage(data) {
+            const { type, data: msgData } = data;
+
+            switch (type) {
+                case 'progress':
+                    updateProgress(msgData);
+                    addMessage('progress', `진행률: ${msgData.percentage}% | 속도: ${msgData.speed} | ETA: ${msgData.eta}`);
+                    break;
+
+                case 'status':
+                    addMessage('status', `상태 변경: ${msgData.status} - ${msgData.message || ''}`);
+                    break;
+
+                case 'complete':
+                    addMessage('complete', `✅ 완료! 파일: ${msgData.filename} (${formatBytes(msgData.size)})`);
+                    progressFill.style.width = '100%';
+                    progressFill.textContent = '100%';
+                    progressInfo.textContent = '다운로드 완료!';
+                    break;
+
+                case 'error':
+                    addMessage('error', `❌ 에러: [${msgData.code}] ${msgData.message}`);
+                    break;
+
+                default:
+                    addMessage('system', `알 수 없는 메시지 타입: ${type}`);
+            }
+        }
+
+        function updateProgress(data) {
+            const { percentage, downloaded_bytes, total_bytes, speed, eta } = data;
+
+            progressFill.style.width = `${percentage}%`;
+            progressFill.textContent = `${percentage}%`;
+
+            progressInfo.textContent = `${formatBytes(downloaded_bytes)} / ${formatBytes(total_bytes)} | 속도: ${speed} | 남은 시간: ${eta}`;
+        }
+
+        function addMessage(type, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            messageDiv.textContent = `[${timestamp}] ${text}`;
+
+            messagesEl.appendChild(messageDiv);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function clearMessages() {
+            messagesEl.innerHTML = '<p style="color: #999;">메시지를 지웠습니다...</p>';
+            progressFill.style.width = '0%';
+            progressFill.textContent = '0%';
+            progressInfo.textContent = '대기 중...';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // 페이지 로드 시 URL에서 task_id 가져오기
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const taskId = params.get('task_id');
+            if (taskId) {
+                taskIdInput.value = taskId;
+            }
+        };
+    </script>
+</body>
+
+</html>
