@@ -97,6 +97,11 @@ class Downloader:
             "outtmpl": str(self.options.output_dir / "%(title)s.%(ext)s"),
             "quiet": True,
             "no_warnings": True,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android_vr", "web_creator"]
+                }
+            },
         }
 
         # FFmpeg 바이너리 설정
@@ -117,6 +122,7 @@ class Downloader:
                 "preferredquality": self.options.audio_quality,
             }]
         else:
+            opts["merge_output_format"] = "mp4"
             if self.options.quality == "best":
                 opts["format"] = "bestvideo+bestaudio/best"
             else:
@@ -146,19 +152,15 @@ class Downloader:
     def _find_downloaded_file(self, title: str) -> Path | None:
         """다운로드된 파일 찾기"""
         safe_title = sanitize_filename(title)
+        matching_files: list[Path] = []
 
-        # 가능한 확장자들
-        extensions = [".mp4", ".webm", ".mkv", ".mp3", ".m4a"]
-
-        for ext in extensions:
-            file_path = self.options.output_dir / f"{safe_title}{ext}"
-            if file_path.exists():
-                return file_path
-
-        # 정확한 매칭이 안되면 디렉토리에서 검색
         for file in self.options.output_dir.iterdir():
             if file.is_file() and safe_title in file.stem:
-                return file
+                matching_files.append(file)
+
+        if matching_files:
+            # 가장 최근에 수정/생성된 파일 반환
+            return max(matching_files, key=lambda f: f.stat().st_mtime)
 
         return None
 

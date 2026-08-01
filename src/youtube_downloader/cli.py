@@ -135,11 +135,11 @@ def download(
         result = downloader.download(url, progress_callback, message_callback)
 
         if result.success:
-            console.print("\n[green]✓ 다운로드 완료![/green]")
+            console.print("\n[green][V] 다운로드 완료![/green]")
             if result.file_path:
                 console.print(f"[cyan]저장 위치: {result.file_path}[/cyan]")
         else:
-            console.print(f"\n[red]✗ 다운로드 실패: {result.error_message}[/red]")
+            console.print(f"\n[red][X] 다운로드 실패: {result.error_message}[/red]")
             raise click.Abort()
 
 
