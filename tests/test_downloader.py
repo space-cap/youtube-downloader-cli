@@ -43,6 +43,15 @@ def test_audio_quality_custom():
     assert downloader.options.audio_quality == "128"
 
 
+def test_live_from_start_option():
+    """live_from_start 옵션 테스트"""
+    options = DownloadOptions(live_from_start=True)
+    downloader = Downloader(options)
+    assert downloader.options.live_from_start is True
+    opts = downloader._build_ydl_options(None)
+    assert opts.get("live_from_start") is True
+
+
 def test_download_invalid_url():
     """잘못된 URL 처리 테스트"""
     downloader = Downloader()

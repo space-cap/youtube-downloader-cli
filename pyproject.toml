@@ -77,4 +77,7 @@ addopts = [
     "--cov=youtube_downloader",
     "--cov-report=term-missing",
 ]
+markers = [
+    "integration: integration tests requiring network access",
+]
 

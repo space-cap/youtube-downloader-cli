@@ -27,6 +27,7 @@ class DownloadOptions(BaseModel):
     audio_quality: str = Field(default="192", description="오디오 비트레이트 (kbps)")
     save_metadata: bool = Field(default=False, description="메타데이터 저장")
     save_thumbnail: bool = Field(default=False, description="썸네일 저장")
+    live_from_start: bool = Field(default=False, description="진행 중인 라이브 방송을 처음부터 다운로드")
 
 
 class DownloadResult(BaseModel):

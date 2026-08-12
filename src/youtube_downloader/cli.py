@@ -69,6 +69,11 @@ def cli() -> None:
     is_flag=True,
     help="썸네일 저장",
 )
+@click.option(
+    "--live-from-start",
+    is_flag=True,
+    help="진행 중인 라이브 방송을 처음부터 다운로드",
+)
 def download(
     url: str,
     quality: str,
@@ -77,6 +82,7 @@ def download(
     audio_quality: str,
     metadata: bool,
     thumbnail: bool,
+    live_from_start: bool,
 ) -> None:
     """동영상 다운로드
 
@@ -85,6 +91,7 @@ def download(
         ytdl download <URL> --quality 1080p
         ytdl download <URL> --audio-only
         ytdl download <URL> --audio-only --audio-quality 320
+        ytdl download <URL> --live-from-start
     """
     # 옵션 설정
     options = DownloadOptions(
@@ -94,6 +101,7 @@ def download(
         audio_quality=audio_quality,
         save_metadata=metadata,
         save_thumbnail=thumbnail,
+        live_from_start=live_from_start,
     )
 
     # 다운로더 생성

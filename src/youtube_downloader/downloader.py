@@ -132,6 +132,10 @@ class Downloader:
         if self.options.save_thumbnail:
             opts["writethumbnail"] = True
 
+        # 라이브 처음부터 다운로드
+        if self.options.live_from_start:
+            opts["live_from_start"] = True
+
         # 진행률 콜백
         if progress_callback:
             opts["progress_hooks"] = [progress_callback]

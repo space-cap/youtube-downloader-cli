@@ -138,6 +138,13 @@ ytdl download <URL> --audio-only --audio-quality 128
 ytdl download <URL> --audio-only --audio-quality 48
 ```
 
+#### 생방송 / 라이브 스트리밍 다운로드
+
+```bash
+# 진행 중인 생방송을 처음부터 다운로드 (녹화)
+ytdl download <URL> --live-from-start
+```
+
 **사용 가능한 음질 옵션:** `32`, `48`, `64`, `96`, `128`, `192` (기본), `256`, `320` (kbps)
 
 **💡 파일 크기 참고 (4시간 영상 기준):**
